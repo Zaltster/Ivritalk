@@ -100,7 +100,7 @@ export default function EditCharacter() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <div className="text-xl text-gray-900">Loading...</div>
       </div>
     )
   }
@@ -108,7 +108,7 @@ export default function EditCharacter() {
   if (!character) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Character not found</div>
+        <div className="text-xl text-gray-900">Character not found</div>
       </div>
     )
   }

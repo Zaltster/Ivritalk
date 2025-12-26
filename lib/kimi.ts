@@ -1,5 +1,5 @@
 const KIMI_API_KEY = process.env.KIMI_API_KEY!
-const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
+const KIMI_API_URL = 'https://api.moonshot.ai/v1/chat/completions'
 
 interface Message {
   role: 'system' | 'user' | 'assistant'
@@ -7,6 +7,8 @@ interface Message {
 }
 
 export async function chatWithKimi(messages: Message[]) {
+  console.log('Kimi API Key:', KIMI_API_KEY ? `${KIMI_API_KEY.substring(0, 10)}...` : 'NOT SET')
+
   const response = await fetch(KIMI_API_URL, {
     method: 'POST',
     headers: {
@@ -14,14 +16,16 @@ export async function chatWithKimi(messages: Message[]) {
       'Authorization': `Bearer ${KIMI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'moonshot-v1-8k',
+      model: 'kimi-k2-thinking',
       messages,
       temperature: 0.7,
     }),
   })
 
   if (!response.ok) {
-    throw new Error(`Kimi API error: ${response.statusText}`)
+    const errorText = await response.text()
+    console.error('Kimi API error response:', errorText)
+    throw new Error(`Kimi API error: ${response.statusText} - ${errorText}`)
   }
 
   const data = await response.json()

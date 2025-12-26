@@ -174,6 +174,9 @@ export default function ChatPage() {
     const userMessage = input
     setInput('')
 
+    // Reload messages to show user message immediately
+    await loadMessages()
+
     // Get conversation history for context
     const conversationHistory = messages.slice(-10).map((msg) => ({
       role: msg.character_id ? ('assistant' as const) : ('user' as const),
@@ -205,6 +208,9 @@ export default function ChatPage() {
               content: data.response,
               is_system: false,
             })
+
+          // Reload messages to show the new response immediately
+          await loadMessages()
         }
       } catch (error) {
         console.error('Error getting character response:', error)
@@ -217,7 +223,7 @@ export default function ChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <div className="text-xl text-gray-900">Loading...</div>
       </div>
     )
   }
@@ -225,7 +231,7 @@ export default function ChatPage() {
   if (!world) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">World not found</div>
+        <div className="text-xl text-gray-900">World not found</div>
       </div>
     )
   }
@@ -270,7 +276,7 @@ export default function ChatPage() {
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   )}
-                  <span className="font-medium text-sm">{character.name}</span>
+                  <span className="font-medium text-sm text-gray-900">{character.name}</span>
                 </div>
               </div>
             ))}
@@ -292,7 +298,7 @@ export default function ChatPage() {
                 <div
                   className={`max-w-2xl rounded-lg p-4 ${
                     message.character_id
-                      ? 'bg-white border border-gray-200'
+                      ? 'bg-white border border-gray-200 text-gray-900'
                       : 'bg-indigo-600 text-white'
                   }`}
                 >
@@ -301,7 +307,9 @@ export default function ChatPage() {
                       {message.character_name}
                     </div>
                   )}
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className={`whitespace-pre-wrap ${message.character_id ? 'text-gray-900' : 'text-white'}`}>
+                    {message.content}
+                  </div>
                 </div>
               </div>
             ))}
