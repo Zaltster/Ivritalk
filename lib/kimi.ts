@@ -1,0 +1,54 @@
+const KIMI_API_KEY = process.env.KIMI_API_KEY!
+const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
+
+interface Message {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+export async function chatWithKimi(messages: Message[]) {
+  const response = await fetch(KIMI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${KIMI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'moonshot-v1-8k',
+      messages,
+      temperature: 0.7,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Kimi API error: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return data.choices[0].message.content
+}
+
+export function buildCharacterSystemPrompt(character: {
+  name: string
+  what_did_i_do: string
+  external_qualities: string
+  internal_qualities: string
+  instructions: string
+}, storyline: string) {
+  return `You are ${character.name}, a character in the following story: ${storyline}
+
+Your role in the story: ${character.what_did_i_do}
+
+Your appearance: ${character.external_qualities}
+
+Your personality: ${character.internal_qualities}
+
+Special instructions: ${character.instructions}
+
+IMPORTANT:
+- Stay in character at all times
+- Respond naturally as this character would
+- If you don't know something or it's not part of your character's knowledge, say "I don't know" or respond as the character would
+- Interact with other characters and users as this character
+- Keep responses concise and in character`
+}
