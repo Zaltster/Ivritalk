@@ -34,8 +34,10 @@ export default function ChatPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [autoMode, setAutoMode] = useState(false)
   const [user, setUser] = useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const autoModeRef = useRef(false)
   const router = useRouter()
   const params = useParams()
   const worldId = params.id as string
@@ -194,6 +196,7 @@ export default function ChatPage() {
             characterId,
             userMessage,
             conversationHistory,
+            isAutoMode: false,
           }),
         })
 
@@ -218,6 +221,80 @@ export default function ChatPage() {
     }
 
     setSending(false)
+  }
+
+  async function startAutoConversation() {
+    if (selectedCharacters.size < 2) {
+      alert('Please select at least 2 characters for auto conversation')
+      return
+    }
+
+    setAutoMode(true)
+    autoModeRef.current = true
+
+    // Run the conversation loop
+    runAutoConversation()
+  }
+
+  function stopAutoConversation() {
+    setAutoMode(false)
+    autoModeRef.current = false
+  }
+
+  async function runAutoConversation() {
+    const selectedCharsArray = Array.from(selectedCharacters)
+    let currentCharIndex = 0
+
+    while (autoModeRef.current) {
+      // Get the current character
+      const currentCharId = selectedCharsArray[currentCharIndex]
+
+      // Get conversation history
+      const conversationHistory = messages.slice(-10).map((msg) => ({
+        role: msg.character_id ? ('assistant' as const) : ('user' as const),
+        content: msg.character_name ? `${msg.character_name}: ${msg.content}` : msg.content,
+      }))
+
+      try {
+        // Get character response
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            worldId,
+            characterId: currentCharId,
+            userMessage: 'Continue the conversation naturally with the other characters.',
+            conversationHistory,
+            isAutoMode: true,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (data.response) {
+          // Save the message
+          await supabase
+            .from('chat_messages')
+            .insert({
+              world_id: worldId,
+              character_id: currentCharId,
+              content: data.response,
+              is_system: false,
+            })
+
+          // Reload messages
+          await loadMessages()
+        }
+      } catch (error) {
+        console.error('Error in auto conversation:', error)
+      }
+
+      // Move to next character
+      currentCharIndex = (currentCharIndex + 1) % selectedCharsArray.length
+
+      // Small delay between messages
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    }
   }
 
   if (loading) {
@@ -324,19 +401,51 @@ export default function ChatPage() {
                   Select at least one character to start chatting
                 </div>
               )}
+
+              {/* Auto Conversation Controls */}
+              <div className="mb-3 flex items-center gap-3">
+                {!autoMode ? (
+                  <button
+                    onClick={startAutoConversation}
+                    disabled={selectedCharacters.size < 2 || sending}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    Start Auto Conversation
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={stopAutoConversation}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
+                    >
+                      Stop Auto Conversation
+                    </button>
+                    <div className="flex items-center gap-2 text-green-600">
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Auto mode active</span>
+                    </div>
+                  </>
+                )}
+                {selectedCharacters.size < 2 && !autoMode && (
+                  <span className="text-sm text-gray-500">
+                    (Select 2+ characters for auto conversation)
+                  </span>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !sending && sendMessage()}
+                  onKeyPress={(e) => e.key === 'Enter' && !sending && !autoMode && sendMessage()}
                   placeholder="Type your message..."
-                  disabled={selectedCharacters.size === 0 || sending}
+                  disabled={selectedCharacters.size === 0 || sending || autoMode}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={selectedCharacters.size === 0 || sending || !input.trim()}
+                  disabled={selectedCharacters.size === 0 || sending || !input.trim() || autoMode}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sending ? 'Sending...' : 'Send'}

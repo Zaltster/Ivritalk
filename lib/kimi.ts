@@ -38,8 +38,8 @@ export function buildCharacterSystemPrompt(character: {
   external_qualities: string
   internal_qualities: string
   instructions: string
-}, storyline: string) {
-  return `You are ${character.name}, a character in the following story: ${storyline}
+}, storyline: string, isAutoMode: boolean = false) {
+  const basePrompt = `You are ${character.name}, a character in the following story: ${storyline}
 
 Your role in the story: ${character.what_did_i_do}
 
@@ -55,4 +55,16 @@ IMPORTANT:
 - If you don't know something or it's not part of your character's knowledge, say "I don't know" or respond as the character would
 - Interact with other characters and users as this character
 - Keep responses concise and in character`
+
+  if (isAutoMode) {
+    return basePrompt + `
+- You are having a conversation with other characters in the story
+- Address other characters directly and naturally
+- React to what others have said
+- Keep the conversation flowing
+- Don't repeat what others said, add new thoughts
+- Keep responses to 1-3 sentences`
+  }
+
+  return basePrompt
 }

@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { worldId, characterId, userMessage, conversationHistory } = await request.json()
+    const { worldId, characterId, userMessage, conversationHistory, isAutoMode } = await request.json()
 
     // Get character details
     const { data: character, error: charError } = await supabase
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt
-    const systemPrompt = buildCharacterSystemPrompt(character, world.storyline)
+    const systemPrompt = buildCharacterSystemPrompt(character, world.storyline, isAutoMode || false)
 
     // Build messages array for Kimi
     const messages = [
