@@ -108,9 +108,17 @@ export default function WorldPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white p-6 rounded-lg shadow mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Storyline</h2>
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Storyline</h2>
+            <Link
+              href={`/world/${world.id}/edit`}
+              className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+            >
+              Edit World
+            </Link>
+          </div>
           <p className="text-gray-700 mb-4">{world.storyline}</p>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center flex-wrap">
             <div className="text-sm text-gray-600">
               <span className="font-semibold">World Code:</span>{' '}
               <span className="font-mono text-indigo-600">{world.code}</span>
