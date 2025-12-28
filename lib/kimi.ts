@@ -31,8 +31,19 @@ export async function chatWithKimi(messages: Message[]) {
   const data = await response.json()
   let content = data.choices[0].message.content
 
-  // Remove character name prefix if AI included it (e.g., "Bob:", "בוב:", etc.)
-  content = content.replace(/^[^:]+:\s*/, '')
+  // Remove character name prefix if AI included it (e.g., "Bob:", "בוב:", "Dragonfly:", etc.)
+  // Try multiple patterns to catch all variations
+  content = content.replace(/^[^:]+:\s*/m, '') // Start of content
+  content = content.replace(/^\s*[^:]+:\s*/m, '') // With leading whitespace
+  content = content.trim()
+
+  // Check if response contains significant English (more than just punctuation/emoji)
+  const englishWords = content.match(/[a-zA-Z]{3,}/g) // 3+ letter English words
+  if (englishWords && englishWords.length > 0) {
+    console.warn('AI responded in English, rejecting:', content)
+    // Return a Hebrew error message instead
+    return 'סליחה, אני צריך לדבר רק בעברית. אנסה שוב.'
+  }
 
   return content
 }
@@ -54,11 +65,15 @@ Your personality: ${character.internal_qualities}
 
 Special instructions: ${character.instructions}
 
-CRITICAL LANGUAGE REQUIREMENT:
-- You MUST respond ONLY in Hebrew (עברית)
-- NEVER respond in English, Mandarin Chinese, or any other language
-- ALL your responses must be in Hebrew characters
-- If you don't know Hebrew, say "אני לא יודע" (I don't know in Hebrew)`
+CRITICAL LANGUAGE REQUIREMENT - READ THIS CAREFULLY:
+- You MUST respond 100% ONLY in Hebrew (עברית) - NO EXCEPTIONS
+- ABSOLUTELY NO ENGLISH WORDS - not even a single English word
+- ABSOLUTELY NO Chinese/Mandarin - not even a single character
+- Every single word must be written in Hebrew characters (א-ת)
+- This is for Hebrew language learning - mixing languages defeats the purpose
+- If you don't know how to say something in Hebrew, say "אני לא יודע"
+- Examples of WRONG responses: "Counting grains", "Maybe next summer", "that sounds"
+- Examples of CORRECT responses: "ספירת גרגרים", "אולי הקיץ הבא", "זה נשמע"`
 
   // Add vocab/grammar focus if provided
   if (vocab || grammar) {
