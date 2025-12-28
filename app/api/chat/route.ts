@@ -34,7 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt
-    const systemPrompt = buildCharacterSystemPrompt(character, world.storyline, isAutoMode || false)
+    const systemPrompt = buildCharacterSystemPrompt(
+      character,
+      world.storyline,
+      world.vocab,
+      world.grammar,
+      isAutoMode || false
+    )
 
     // Build messages array for Kimi
     const messages = [

@@ -11,6 +11,8 @@ function generateCode() {
 export default function NewWorld() {
   const [name, setName] = useState('')
   const [storyline, setStoryline] = useState('')
+  const [vocab, setVocab] = useState('')
+  const [grammar, setGrammar] = useState('')
   const [code, setCode] = useState(generateCode())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,6 +34,8 @@ export default function NewWorld() {
       .insert({
         name,
         storyline,
+        vocab: vocab || null,
+        grammar: grammar || null,
         code,
         creator_id: user.id,
       })
@@ -91,6 +95,34 @@ export default function NewWorld() {
               required
               rows={6}
               placeholder="Describe the setting and story for your characters..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="vocab" className="block text-sm font-medium text-gray-700 mb-2">
+              Vocabulary Focus (optional)
+            </label>
+            <textarea
+              id="vocab"
+              value={vocab}
+              onChange={(e) => setVocab(e.target.value)}
+              rows={3}
+              placeholder="List Hebrew words/phrases you want characters to use (e.g., בית, משפחה, אוהב)..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="grammar" className="block text-sm font-medium text-gray-700 mb-2">
+              Grammar Focus (optional)
+            </label>
+            <textarea
+              id="grammar"
+              value={grammar}
+              onChange={(e) => setGrammar(e.target.value)}
+              rows={3}
+              placeholder="Describe grammar patterns you want characters to practice (e.g., past tense, question forms)..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>

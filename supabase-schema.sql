@@ -25,6 +25,8 @@ CREATE TABLE worlds (
   name TEXT NOT NULL,
   code TEXT UNIQUE NOT NULL,
   storyline TEXT NOT NULL,
+  vocab TEXT,
+  grammar TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

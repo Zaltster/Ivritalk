@@ -25,6 +25,8 @@ export interface Database {
           name: string
           code: string
           storyline: string
+          vocab: string | null
+          grammar: string | null
           created_at: string
         }
         Insert: {
@@ -33,6 +35,8 @@ export interface Database {
           name: string
           code: string
           storyline: string
+          vocab?: string | null
+          grammar?: string | null
           created_at?: string
         }
         Update: {
@@ -41,6 +45,8 @@ export interface Database {
           name?: string
           code?: string
           storyline?: string
+          vocab?: string | null
+          grammar?: string | null
           created_at?: string
         }
       }

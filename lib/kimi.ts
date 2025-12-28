@@ -16,9 +16,9 @@ export async function chatWithKimi(messages: Message[]) {
       'Authorization': `Bearer ${KIMI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'kimi-k2-thinking',
+      model: 'kimi-k2-0905-preview',
       messages,
-      temperature: 0.7,
+      temperature: 0.6,
     }),
   })
 
@@ -29,7 +29,23 @@ export async function chatWithKimi(messages: Message[]) {
   }
 
   const data = await response.json()
-  return data.choices[0].message.content
+  let content = data.choices[0].message.content
+
+  // Remove character name prefix if AI included it (e.g., "Bob:", "בוב:", "Dragonfly:", etc.)
+  // Try multiple patterns to catch all variations
+  content = content.replace(/^[^:]+:\s*/m, '') // Start of content
+  content = content.replace(/^\s*[^:]+:\s*/m, '') // With leading whitespace
+  content = content.trim()
+
+  // Check if response contains significant English (more than just punctuation/emoji)
+  const englishWords = content.match(/[a-zA-Z]{3,}/g) // 3+ letter English words
+  if (englishWords && englishWords.length > 0) {
+    console.warn('AI responded in English, rejecting:', content)
+    // Return a Hebrew error message instead
+    return 'סליחה, אני צריך לדבר רק בעברית. אנסה שוב.'
+  }
+
+  return content
 }
 
 export function buildCharacterSystemPrompt(character: {
@@ -38,8 +54,8 @@ export function buildCharacterSystemPrompt(character: {
   external_qualities: string
   internal_qualities: string
   instructions: string
-}, storyline: string, isAutoMode: boolean = false) {
-  const basePrompt = `You are ${character.name}, a character in the following story: ${storyline}
+}, storyline: string, vocab?: string | null, grammar?: string | null, isAutoMode: boolean = false) {
+  let basePrompt = `You are ${character.name}, a character in the following story: ${storyline}
 
 Your role in the story: ${character.what_did_i_do}
 
@@ -49,12 +65,44 @@ Your personality: ${character.internal_qualities}
 
 Special instructions: ${character.instructions}
 
+CRITICAL LANGUAGE REQUIREMENT - READ THIS CAREFULLY:
+- You MUST respond 100% ONLY in Hebrew (עברית) - NO EXCEPTIONS
+- ABSOLUTELY NO ENGLISH WORDS - not even a single English word
+- ABSOLUTELY NO Chinese/Mandarin - not even a single character
+- Every single word must be written in Hebrew characters (א-ת)
+- This is for Hebrew language learning - mixing languages defeats the purpose
+- If you don't know how to say something in Hebrew, say "אני לא יודע"
+- Examples of WRONG responses: "Counting grains", "Maybe next summer", "that sounds"
+- Examples of CORRECT responses: "ספירת גרגרים", "אולי הקיץ הבא", "זה נשמע"`
+
+  // Add vocab/grammar focus if provided
+  if (vocab || grammar) {
+    basePrompt += `\n\nLANGUAGE LEARNING FOCUS:`
+    if (vocab) {
+      basePrompt += `\n- Try to use these vocabulary words when possible (naturally, not forced): ${vocab}`
+    }
+    if (grammar) {
+      basePrompt += `\n- Practice these grammar patterns when speaking: ${grammar}`
+    }
+    basePrompt += `\n- Incorporate these naturally into your conversation - don't force them, but lean towards using them when appropriate`
+  }
+
+  basePrompt += `
+
+CRITICAL FORMATTING REQUIREMENT:
+- DO NOT start your response with your name (like "בוב:" or "Bob:")
+- DO NOT include any character labels or names in your response
+- Your name will be displayed separately in the chat interface
+- Just respond directly with your message content ONLY
+
 IMPORTANT:
 - Stay in character at all times
 - Respond naturally as this character would
-- If you don't know something or it's not part of your character's knowledge, say "I don't know" or respond as the character would
+- If you don't know something or it's not part of your character's knowledge, say "אני לא יודע" or respond as the character would in Hebrew
 - Interact with other characters and users as this character
-- Keep responses concise and in character`
+- Keep responses concise and in character
+- This is Mainly designed for kids with a begginner level of Hebrew Undestanding so dont use words that are too complex`
+
 
   if (isAutoMode) {
     return basePrompt + `
