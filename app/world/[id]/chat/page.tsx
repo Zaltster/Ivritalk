@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useAudioQueue } from '@/hooks/useAudioQueue'
 
 interface World {
   id: string
@@ -35,12 +36,15 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [autoMode, setAutoMode] = useState(false)
+  const [ttsEnabled, setTtsEnabled] = useState(false)
   const [user, setUser] = useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const autoModeRef = useRef(false)
+  const ttsEnabledRef = useRef(false)
   const router = useRouter()
   const params = useParams()
   const worldId = params.id as string
+  const { addToQueue, playImmediate, isPlaying, currentlyPlaying } = useAudioQueue()
 
   useEffect(() => {
     checkUser()
@@ -49,8 +53,18 @@ export default function ChatPage() {
   useEffect(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+
+      // If TTS is enabled and auto mode is active, speak new character messages
+      const lastMessage = messages[messages.length - 1]
+      if (ttsEnabledRef.current && autoModeRef.current && lastMessage.character_id) {
+        addToQueue(lastMessage.content, lastMessage.id)
+      }
     }
-  }, [messages])
+  }, [messages, addToQueue])
+
+  useEffect(() => {
+    ttsEnabledRef.current = ttsEnabled
+  }, [ttsEnabled])
 
   async function checkUser() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -370,23 +384,45 @@ export default function ChatPage() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.character_id ? 'justify-start' : 'justify-end'}`}
+                className={`flex ${message.character_id ? 'justify-start' : 'justify-end'} group`}
               >
-                <div
-                  className={`max-w-2xl rounded-lg p-4 ${
-                    message.character_id
-                      ? 'bg-white border border-gray-200 text-gray-900'
-                      : 'bg-indigo-600 text-white'
-                  }`}
-                >
-                  {message.character_name && (
-                    <div className="font-bold text-sm mb-1 text-indigo-600">
-                      {message.character_name}
-                    </div>
+                <div className="flex items-start gap-2">
+                  {message.character_id && (
+                    <button
+                      onClick={() => playImmediate(message.content)}
+                      disabled={isPlaying && currentlyPlaying === message.id}
+                      className="mt-2 text-indigo-600 hover:text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      title="Read aloud"
+                    >
+                      {isPlaying && currentlyPlaying === message.id ? '🔊' : '🔉'}
+                    </button>
                   )}
-                  <div className={`whitespace-pre-wrap ${message.character_id ? 'text-gray-900' : 'text-white'}`}>
-                    {message.content}
+                  <div
+                    className={`max-w-2xl rounded-lg p-4 ${
+                      message.character_id
+                        ? 'bg-white border border-gray-200 text-gray-900'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
+                    {message.character_name && (
+                      <div className="font-bold text-sm mb-1 text-indigo-600">
+                        {message.character_name}
+                      </div>
+                    )}
+                    <div className={`whitespace-pre-wrap ${message.character_id ? 'text-gray-900' : 'text-white'}`}>
+                      {message.content}
+                    </div>
                   </div>
+                  {!message.character_id && (
+                    <button
+                      onClick={() => playImmediate(message.content)}
+                      disabled={isPlaying && currentlyPlaying === message.id}
+                      className="mt-2 text-white hover:text-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      title="Read aloud"
+                    >
+                      {isPlaying && currentlyPlaying === message.id ? '🔊' : '🔉'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -403,7 +439,7 @@ export default function ChatPage() {
               )}
 
               {/* Auto Conversation Controls */}
-              <div className="mb-3 flex items-center gap-3">
+              <div className="mb-3 flex items-center gap-3 flex-wrap">
                 {!autoMode ? (
                   <button
                     onClick={startAutoConversation}
@@ -426,6 +462,18 @@ export default function ChatPage() {
                     </div>
                   </>
                 )}
+
+                {/* TTS Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ttsEnabled}
+                    onChange={(e) => setTtsEnabled(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">🔊 Read aloud</span>
+                </label>
+
                 {selectedCharacters.size < 2 && !autoMode && (
                   <span className="text-sm text-gray-500">
                     (Select 2+ characters for auto conversation)
