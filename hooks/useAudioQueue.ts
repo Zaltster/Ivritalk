@@ -11,6 +11,30 @@ export function useAudioQueue() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // Fallback to browser's built-in TTS (free, works offline)
+  const speakWithBrowserTTS = useCallback((text: string) => {
+    return new Promise<void>((resolve) => {
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        console.warn('Browser TTS not supported')
+        resolve()
+        return
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'he-IL' // Hebrew
+      utterance.rate = 0.9
+      utterance.pitch = 1
+
+      utterance.onend = () => resolve()
+      utterance.onerror = () => {
+        console.error('Browser TTS error')
+        resolve()
+      }
+
+      window.speechSynthesis.speak(utterance)
+    })
+  }, [])
+
   const playNext = useCallback(async () => {
     setQueue((currentQueue) => {
       if (currentQueue.length === 0) {
@@ -26,7 +50,7 @@ export function useAudioQueue() {
         try {
           setCurrentlyPlaying(nextItem.id)
 
-          // Call TTS API
+          // Try ElevenLabs first (will fallback to browser TTS if quota exceeded)
           const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -36,13 +60,12 @@ export function useAudioQueue() {
           const data = await response.json()
 
           if (data.audio) {
-            // Create audio element and play
+            // ElevenLabs succeeded - play high-quality audio
             const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`)
             audioRef.current = audio
 
             audio.onended = () => {
               setCurrentlyPlaying(null)
-              // Automatically play next in queue
               playNext()
             }
 
@@ -54,12 +77,16 @@ export function useAudioQueue() {
 
             await audio.play()
           } else {
-            // Skip to next if error
+            // ElevenLabs failed - fallback to browser TTS
+            console.log('Using browser TTS fallback')
+            await speakWithBrowserTTS(nextItem.text)
             setCurrentlyPlaying(null)
             playNext()
           }
         } catch (error) {
-          console.error('TTS error:', error)
+          console.error('TTS error, using browser fallback:', error)
+          // Fallback to browser TTS on any error
+          await speakWithBrowserTTS(nextItem.text)
           setCurrentlyPlaying(null)
           playNext()
         }
@@ -67,7 +94,7 @@ export function useAudioQueue() {
 
       return remainingQueue
     })
-  }, [])
+  }, [speakWithBrowserTTS])
 
   const addToQueue = useCallback((text: string, id: string) => {
     setQueue((currentQueue) => {
@@ -89,6 +116,9 @@ export function useAudioQueue() {
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
     }
 
     // Clear queue and play immediately
@@ -114,17 +144,27 @@ export function useAudioQueue() {
         }
 
         await audio.play()
+      } else {
+        // Fallback to browser TTS
+        console.log('Using browser TTS for immediate playback')
+        await speakWithBrowserTTS(text)
+        setIsPlaying(false)
+        setCurrentlyPlaying(null)
       }
     } catch (error) {
-      console.error('TTS error:', error)
+      console.error('TTS error, using browser fallback:', error)
+      await speakWithBrowserTTS(text)
       setIsPlaying(false)
     }
-  }, [])
+  }, [speakWithBrowserTTS])
 
   const clearQueue = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
     }
     setQueue([])
     setIsPlaying(false)
