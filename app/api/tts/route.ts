@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
 
     // Convert text to speech using multilingual v2 model (supports Hebrew)
     const audio = await elevenlabs.textToSpeech.convert(
-      'JBFqnCBsd6RMkjVDRZzb', // George voice - good for Hebrew
+      'cgSgspJ2msm6clMCkdW9', // George voice - good for Hebrew
       {
         text,
-        modelId: 'eleven_multilingual_v2',
+        modelId: 'eleven_v3',
         outputFormat: 'mp3_44100_128',
       }
     )
