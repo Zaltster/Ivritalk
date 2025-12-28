@@ -10,6 +10,23 @@ export function useAudioQueue() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const voicesLoadedRef = useRef(false)
+
+  // Load voices on mount (they load asynchronously)
+  useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices()
+        if (voices.length > 0) {
+          voicesLoadedRef.current = true
+          console.log('Available TTS voices:', voices.map(v => `${v.name} (${v.lang})`))
+        }
+      }
+
+      loadVoices()
+      window.speechSynthesis.onvoiceschanged = loadVoices
+    }
+  }, [])()
 
   // Fallback to browser's built-in TTS (free, works offline)
   const speakWithBrowserTTS = useCallback((text: string) => {
@@ -20,18 +37,47 @@ export function useAudioQueue() {
         return
       }
 
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'he-IL' // Hebrew
-      utterance.rate = 0.9
-      utterance.pitch = 1
+      const speak = () => {
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.lang = 'he-IL' // Hebrew (Israel)
+        utterance.rate = 0.85 // Slower for better clarity
+        utterance.pitch = 1
+        utterance.volume = 1
 
-      utterance.onend = () => resolve()
-      utterance.onerror = () => {
-        console.error('Browser TTS error')
-        resolve()
+        // Try to select a Hebrew voice if available
+        const voices = window.speechSynthesis.getVoices()
+        const hebrewVoice = voices.find(voice =>
+          voice.lang.startsWith('he') ||
+          voice.lang === 'he-IL' ||
+          voice.name.toLowerCase().includes('hebrew') ||
+          voice.name.toLowerCase().includes('carmit') // Common Hebrew voice name
+        )
+
+        if (hebrewVoice) {
+          utterance.voice = hebrewVoice
+          console.log('Using Hebrew voice:', hebrewVoice.name, hebrewVoice.lang)
+        } else {
+          console.warn('⚠️ No Hebrew voice found! Install Hebrew TTS on your device for better pronunciation.')
+          console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`).join(', '))
+        }
+
+        utterance.onend = () => resolve()
+        utterance.onerror = (e) => {
+          console.error('Browser TTS error:', e)
+          resolve()
+        }
+
+        window.speechSynthesis.speak(utterance)
       }
 
-      window.speechSynthesis.speak(utterance)
+      // Voices might not be loaded yet, wait for them
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          speak()
+        }
+      } else {
+        speak()
+      }
     })
   }, [])
 
