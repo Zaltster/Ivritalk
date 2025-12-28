@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
       'JBFqnCBsd6RMkjVDRZzb', // George voice - good for Hebrew
       {
         text,
-        model_id: 'eleven_multilingual_v2',
-        output_format: 'mp3_44100_128',
+        modelId: 'eleven_multilingual_v2',
+        outputFormat: 'mp3_44100_128',
       }
     )
 
