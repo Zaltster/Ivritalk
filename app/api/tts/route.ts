@@ -11,14 +11,18 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.ELEVENLABS_API_KEY
     if (!apiKey) {
-      console.error('ELEVENLABS_API_KEY not set')
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
+      console.error('ELEVENLABS_API_KEY not set in environment')
+      return NextResponse.json({
+        error: 'TTS API key not configured. Please add ELEVENLABS_API_KEY to environment variables.'
+      }, { status: 500 })
     }
 
-    console.log('TTS request for text:', text.substring(0, 50))
+    console.log('TTS request for text:', text.substring(0, 50), '... (length:', text.length, ')')
 
     // Initialize ElevenLabs client
     const elevenlabs = new ElevenLabsClient({ apiKey })
+
+    console.log('Calling ElevenLabs API...')
 
     // Convert text to speech using multilingual v2 model (supports Hebrew)
     const audio = await elevenlabs.textToSpeech.convert(
@@ -30,6 +34,8 @@ export async function POST(request: NextRequest) {
       }
     )
 
+    console.log('Audio stream received, reading chunks...')
+
     // Read the stream into a buffer
     const chunks: Uint8Array[] = []
     const reader = audio.getReader()
@@ -39,6 +45,8 @@ export async function POST(request: NextRequest) {
       if (done) break
       chunks.push(value)
     }
+
+    console.log('Chunks read:', chunks.length)
 
     // Combine chunks into single buffer
     const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
@@ -52,11 +60,18 @@ export async function POST(request: NextRequest) {
     // Convert to base64
     const base64Audio = Buffer.from(audioBuffer).toString('base64')
 
-    console.log('TTS success, audio size:', audioBuffer.length)
+    console.log('TTS success! Audio size:', audioBuffer.length, 'bytes')
 
     return NextResponse.json({ audio: base64Audio })
   } catch (error: any) {
-    console.error('TTS error:', error)
-    return NextResponse.json({ error: error.message || 'TTS generation failed' }, { status: 500 })
+    console.error('TTS error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    })
+    return NextResponse.json({
+      error: error.message || 'TTS generation failed',
+      details: error.stack
+    }, { status: 500 })
   }
 }
