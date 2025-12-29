@@ -157,7 +157,7 @@ export function useAudioQueue() {
     })
   }, [isPlaying, playNext])
 
-  const playImmediate = useCallback(async (text: string) => {
+  const playImmediate = useCallback(async (text: string, id?: string) => {
     // Stop current audio if playing
     if (audioRef.current) {
       audioRef.current.pause()
@@ -170,6 +170,7 @@ export function useAudioQueue() {
     // Clear queue and play immediately
     setQueue([])
     setIsPlaying(true)
+    setCurrentlyPlaying(id ?? null)
 
     try {
       const response = await fetch('/api/tts', {
@@ -201,6 +202,7 @@ export function useAudioQueue() {
       console.error('TTS error, using browser fallback:', error)
       await speakWithBrowserTTS(text)
       setIsPlaying(false)
+      setCurrentlyPlaying(null)
     }
   }, [speakWithBrowserTTS])
 

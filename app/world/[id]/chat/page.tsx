@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAudioQueue } from '@/hooks/useAudioQueue'
@@ -41,10 +41,16 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const autoModeRef = useRef(false)
   const ttsEnabledRef = useRef(false)
+  const lastProcessedMessageId = useRef<string | null>(null)
   const router = useRouter()
   const params = useParams()
   const worldId = params.id as string
   const { addToQueue, playImmediate, isPlaying, currentlyPlaying } = useAudioQueue()
+
+  const handlePlayImmediate = useCallback((message: Message) => {
+    lastProcessedMessageId.current = message.id
+    playImmediate(message.content, message.id)
+  }, [playImmediate])
 
   useEffect(() => {
     checkUser()
@@ -54,10 +60,19 @@ export default function ChatPage() {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
 
-      // If TTS is enabled and auto mode is active, speak new character messages
+      // If TTS is enabled, speak new character messages (only once per message)
       const lastMessage = messages[messages.length - 1]
-      if (ttsEnabledRef.current && autoModeRef.current && lastMessage.character_id) {
-        addToQueue(lastMessage.content, lastMessage.id)
+      if (ttsEnabledRef.current && lastMessage.character_id && lastMessage.id !== lastProcessedMessageId.current) {
+        // Use setTimeout to debounce - only speak if the message is still the last one after 100ms
+        const messageId = lastMessage.id
+        const messageContent = lastMessage.content
+        setTimeout(() => {
+          // Only speak if this is still the last message (prevents duplicate from subscription firing right after loadMessages)
+          if (messages.length > 0 && messages[messages.length - 1].id === messageId && lastProcessedMessageId.current !== messageId) {
+            lastProcessedMessageId.current = messageId
+            addToQueue(messageContent, messageId)
+          }
+        }, 100)
       }
     }
   }, [messages, addToQueue])
@@ -389,7 +404,7 @@ export default function ChatPage() {
                 <div className="flex items-start gap-2">
                   {message.character_id && (
                     <button
-                      onClick={() => playImmediate(message.content)}
+                      onClick={() => handlePlayImmediate(message)}
                       disabled={isPlaying && currentlyPlaying === message.id}
                       className="mt-2 text-indigo-600 hover:text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       title="Read aloud"
@@ -405,17 +420,17 @@ export default function ChatPage() {
                     }`}
                   >
                     {message.character_name && (
-                      <div className="font-bold text-sm mb-1 text-indigo-600">
+                      <div className="font-bold text-lg mb-1 text-indigo-600">
                         {message.character_name}
                       </div>
                     )}
-                    <div className={`whitespace-pre-wrap ${message.character_id ? 'text-gray-900' : 'text-white'}`}>
+                    <div className={`whitespace-pre-wrap text-2xl ${message.character_id ? 'text-gray-900' : 'text-white'}`}>
                       {message.content}
                     </div>
                   </div>
                   {!message.character_id && (
                     <button
-                      onClick={() => playImmediate(message.content)}
+                      onClick={() => handlePlayImmediate(message)}
                       disabled={isPlaying && currentlyPlaying === message.id}
                       className="mt-2 text-white hover:text-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       title="Read aloud"

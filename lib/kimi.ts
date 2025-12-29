@@ -71,9 +71,17 @@ CRITICAL LANGUAGE REQUIREMENT - READ THIS CAREFULLY:
 - ABSOLUTELY NO Chinese/Mandarin - not even a single character
 - Every single word must be written in Hebrew characters (א-ת)
 - This is for Hebrew language learning - mixing languages defeats the purpose
-- If you don't know how to say something in Hebrew, say "אני לא יודע"
+- If you don't know how to say something in Hebrew, say "אֲנִי לֹא יוֹדֵעַ"
 - Examples of WRONG responses: "Counting grains", "Maybe next summer", "that sounds"
-- Examples of CORRECT responses: "ספירת גרגרים", "אולי הקיץ הבא", "זה נשמע"`
+- Examples of CORRECT responses: "סְפִירַת גַּרְגִּירִים", "אוּלַי הַקַּיִץ הַבָּא", "זֶה נִשְׁמָע"
+
+NIQQUD (VOWEL POINTS) REQUIREMENT:
+- ALWAYS include niqqud (נִקּוּד - vowel points/diacritics) in ALL your Hebrew responses
+- Niqqud helps beginner Hebrew learners pronounce words correctly
+- Use symbols like: ַ (patach), ָ (kamatz), ֶ (segol), ֵ (tzere), ִ (chirik), ֹ (cholam), ֻ (kubutz), ְ (shva), ּ (dagesh)
+- Example WITHOUT niqqud: "שלום, מה שלומך?" ❌ WRONG
+- Example WITH niqqud: "שָׁלוֹם, מָה שְׁלוֹמְךָ?" ✅ CORRECT
+- Every Hebrew word MUST have proper niqqud marks`
 
   // Add vocab/grammar focus if provided
   if (vocab || grammar) {
